@@ -16,7 +16,7 @@ export default function App() {
       {/* The WebView loads your simulation */}
       <WebView 
         // This points to the file you put in the assets folder
-        source={require('./assets/index.html')} 
+        source={{ uri: 'https://steilab.netlify.app/' }} 
         
         style={styles.webview}
         javaScriptEnabled={true}
