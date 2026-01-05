@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>STEI - Lab | Universal Virtual Lab</title>
+    <style>
+        :root {
+            --primary: #88ff00;
+            --primary-dark: #0b67f1;
+            --secondary: #64748B;
+            --bg-body: #F1F5F9;
+            --bg-card: #FFFFFF;
+            --text-main: #1E293B;
+            --text-light: #64748B;
+            --danger: #EF4444;
+            --success: #10B981;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: var(--bg-body); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        
+        
+        h1, h2, h3 { margin: 0; font-weight: 700; }
+        p { margin: 0 0 10px 0; color: var(--text-light); line-height: 1.5; }
+        button { cursor: pointer; border: none; outline: none; font-family: inherit; transition: all 0.2s; }
+        
+        
+        .app-container { flex: 1; overflow-y: auto; position: relative; padding-bottom: 80px; } 
+        .screen { display: none; padding: 20px; animation: fadeIn 0.3s ease; }
+        .screen.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .btn { padding: 12px 20px; border-radius: var(--radius); font-weight: 600; font-size: 1rem; width: 100%; text-align: center; }
+        .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2); }
+        .btn-primary:active { background: var(--primary-dark); transform: scale(0.98); }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); margin-top: 10px; }
+        
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem; }
+        .input-field { width: 100%; padding: 12px; border: 1px solid #CBD5E1; border-radius: var(--radius); font-size: 1rem; transition: border 0.2s; }
+        .input-field:focus { border-color: var(--primary); outline: none; }
+
+        .card { background: var(--bg-card); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); margin-bottom: 20px; }
+        
+        /* Navigation (Bottom Tab Bar - Mobile Style) */
+        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-card); display: flex; justify-content: space-around; padding: 12px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-light); font-size: 0.75rem; gap: 4px; }
+        .nav-item.active { color: var(--primary); font-weight: 600; }
+        .nav-icon { font-size: 1.25rem; }
+
+        /* Login */
+        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-body); z-index: 200; display: flex; flex-direction: column; justify-content: center; padding: 40px; }
+        .logo-area { text-align: center; margin-bottom: 40px; }
+        .logo-icon { font-size: 3rem; color: var(--primary); margin-bottom: 10px; display: block; }
+
+        /* Dashboard */
+        .welcome-header { margin-bottom: 20px; }
+        .module-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        .module-card { display: flex; align-items: center; justify-content: space-between; background: var(--bg-card); padding: 15px; border-radius: var(--radius); box-shadow: var(--shadow); cursor: pointer; transition: transform 0.2s; }
+        .module-card:active { transform: scale(0.98); }
+        .module-info h3 { font-size: 1.1rem; }
+        .module-icon { width: 50px; height: 50px; background: #EFF6FF; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 1.5rem; }
+
+        /* Simulation */
+        .sim-container { position: relative; width: 100%; background: #0F172A; border-radius: var(--radius); overflow: hidden; margin-bottom: 15px; touch-action: none; }
+        canvas { display: block; width: 100%; }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .control-full { grid-column: span 2; }
+        .slider-container { margin-bottom: 5px; }
+        .slider-label { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 5px; }
+        input[type="range"] { width: 100%; accent-color: var(--primary); }
+
+        /* History List */
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #E2E8F0; }
+        .history-item:last-child { border-bottom: none; }
+        .history-meta { display: flex; flex-direction: column; }
+        .history-date { font-size: 0.75rem; color: var(--text-light); }
+
+        /* Toast Notification */
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #334155; color: white; padding: 10px 20px; border-radius: 20px; font-size: 0.9rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 300; }
+        .toast.show { opacity: 1; }
+
+        /* Profile */
+        .profile-header { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+        .avatar { width: 60px; height: 60px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; }
+        
+        /* Utility for Circuit Visuals */
+        .circuit-diagram { height: 200px; position: relative; display: flex; align-items: center; justify-content: center; }
+        .circuit-node { width: 20px; height: 20px; background: #fff; border: 2px solid var(--text-main); border-radius: 50%; z-index: 2; }
+        .circuit-wire { position: absolute; height: 4px; background: #fff; z-index: 1; transition: width 0.5s; }
+        .bulb { width: 40px; height: 40px; border-radius: 50%; background: #444; position: absolute; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 0 rgba(255, 223, 0, 0); transition: box-shadow 0.2s; z-index: 3; }
+        .bulb.on { background: #FCD34D; box-shadow: 0 0 20px 5px rgba(252, 211, 77, 0.6); }
+
+    </style>
+</head>
+<body>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast">Action Successful</div>
+
+    <!-- Login Screen -->
+    <div id="login-screen" class="screen active">
+        <div class="logo-area">
+            <span class="logo-icon">⚛️</span>
+            <h1>STEI - Lab</h1>
+            <p>Universal Virtual Lab</p>
+        </div>
+        <form id="login-form">
+            <div class="input-group">
+                <label>Username</label>
+                <input type="text" id="username" class="input-field" placeholder="Enter student ID" required>
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" class="input-field" placeholder="••••••" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Login</button>
+            <div style="margin-top: 15px; text-align: center;">
+                <a href="#" style="color: var(--primary); font-size: 0.9rem; text-decoration: none;" onclick="showToast('Mock Registration: Just Login')">Don't have an account? Register</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app-container" class="app-container" style="display: none;">
+        
+        <!-- Dashboard Screen -->
+        <div id="dashboard-screen" class="screen active">
+            <div class="welcome-header">
+                <h2 id="welcome-msg">Hello, Student!</h2>
+                <p>Ready to explore physics today?</p>
+            </div>
+
+            <div class="card">
+                <h3>📚 Modules</h3>
+                <div class="module-grid" style="margin-top: 15px;">
+                    <div class="module-card" onclick="navTo('sim-projectile')">
+                        <div class="module-info">
+                            <h3>Projectile Motion</h3>
+                            <p style="font-size: 0.8rem; margin:0;">Motion, Gravity, Air Resistance</p>
+                        </div>
+                        <div class="module-icon">🚀</div>
+                    </div>
+                    <div class="module-card" onclick="navTo('sim-circuit')">
+                        <div class="module-info">
+                            <h3>Circuit Construction</h3>
+                            <p style="font-size: 0.8rem; margin:0;">Series vs Parallel, Ohm's Law</p>
+                        </div>
+                        <div class="module-icon">💡</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Recent History</h3>
+                <div id="recent-history-list">
+                    <p style="text-align: center; font-size: 0.9rem;">No recent experiments found.</p>
+                </div>
+                <button class="btn btn-outline" style="margin-top: 15px;" onclick="navTo('profile')">View All History</button>
+            </div>
+        </div>
+
+        <!-- Simulasi Projectile Motion -->
+        <div id="sim-projectile-screen" class="screen">
+            <h2>🚀 Projectile Motion</h2>
+            <p>Adjust parameters to observe trajectory.</p>
+            
+            <div class="sim-container">
+                <canvas id="canvas-projectile" width="600" height="400"></canvas>
+            </div>
+
+            <div class="controls">
+                <div class="slider-container control-full">
+                    <div class="slider-label"><span>Initial Velocity (v₀)</span> <span id="val-vel">50 m/s</span></div>
+                    <input type="range" id="inp-vel" min="10" max="100" value="50">
+                </div>
+                <div class="slider-container">
+                    <div class="slider-label"><span>Angle (θ)</span> <span id="val-angle">45°</span></div>
+                    <input type="range" id="inp-angle" min="0" max="90" value="45">
+                </div>
+                <div class="slider-container">
+                    <div class="slider-label"><span>Air Resistance (k)</span> <span id="val-drag">0.00</span></div>
+                    <input type="range" id="inp-drag" min="0" max="0.1" step="0.001" value="0.00">
+                </div>
+                <div class="control-full" style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="startProjectile()">Launch</button>
+                    <button class="btn btn-outline" style="margin-top:0; border-color: #CBD5E1; color: var(--text-light);" onclick="resetProjectile()">Reset</button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>Results</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9rem;">
+                    <div>Max Height: <b id="res-height">0 m</b></div>
+                    <div>Distance: <b id="res-dist">0 m</b></div>
+                    <div>Time: <b id="res-time">0 s</b></div>
+                </div>
+                <button class="btn btn-primary" style="margin-top: 15px;" onclick="saveSimResult('Projectile Motion')">Save Experiment</button>
+            </div>
+        </div>
+
+        <!-- Simulasi Circuit -->
+        <div id="sim-circuit-screen" class="screen">
+            <h2>💡 Circuit Construction</h2>
+            <p>Configure Series or Parallel circuits.</p>
+
+            <div class="sim-container circuit-diagram" id="circuit-visual">
+                <!-- Dynamic Visual Elements -->
+                <div class="bulb" id="bulb-vis"></div>
+                <div class="circuit-node" style="top: 20px; left: 20px;"></div>
+                <div class="circuit-node" style="bottom: 20px; left: 20px;"></div>
+                <div class="circuit-node" style="top: 20px; right: 20px;"></div>
+                <div class="circuit-node" style="bottom: 20px; right: 20px;"></div>
+                <div style="position: absolute; font-size: 0.8rem; color: white; bottom: 10px;">Power Source</div>
+            </div>
+
+            <div class="controls">
+                <div class="slider-container control-full">
+                    <label style="font-weight: 600;">Circuit Type</label>
+                    <div style="display: flex; gap: 10px; margin-top: 5px;">
+                        <button class="btn btn-primary" id="btn-series" onclick="setCircuitType('series')">Series</button>
+                        <button class="btn btn-outline" id="btn-parallel" onclick="setCircuitType('parallel')">Parallel</button>
+                    </div>
+                </div>
+                <div class="slider-container">
+                    <div class="slider-label"><span>Voltage (V)</span> <span id="val-volt">12 V</span></div>
+                    <input type="range" id="inp-volt" min="1" max="24" value="12">
+                </div>
+                <div class="slider-container">
+                    <div class="slider-label"><span>Resistance 1 (Ω)</span> <span id="val-r1">10 Ω</span></div>
+                    <input type="range" id="inp-r1" min="1" max="100" value="10">
+                </div>
+                <div class="slider-container">
+                    <div class="slider-label"><span>Resistance 2 (Ω)</span> <span id="val-r2">10 Ω</span></div>
+                    <input type="range" id="inp-r2" min="1" max="100" value="10">
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Circuit Analysis</h3>
+                <div style="font-size: 0.9rem; line-height: 1.8;">
+                    Total R: <b id="circuit-r">20 Ω</b><br>
+                    Total I: <b id="circuit-i">0.60 A</b><br>
+                    Power: <b id="circuit-p">7.20 W</b>
+                </div>
+                <button class="btn btn-primary" style="margin-top: 15px;" onclick="saveSimResult('Circuit Sim')">Save Experiment</button>
+            </div>
+        </div>
+
+        <!-- Profile Screen -->
+        <div id="profile-screen" class="screen">
+            <div class="card">
+                <div class="profile-header">
+                    <div class="avatar" id="profile-avatar">S</div>
+                    <div>
+                        <h2 id="profile-name">Student Name</h2>
+                        <p style="margin:0;">Computer Science Dept.</p>
+                    </div>
+                </div>
+                <button class="btn btn-outline" onclick="logout()">Logout</button>
+            </div>
+
+            <h3>Experiment History</h3>
+            <div class="card">
+                <div id="full-history-list">
+                </div>
+                <button class="btn btn-outline" style="margin-top: 10px; border-color: var(--danger); color: var(--danger);" onclick="clearHistory()">Clear History</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav id="nav-bar" class="nav-bar" style="display: none;">
+        <div class="nav-item active" onclick="navTo('dashboard')" id="nav-dashboard">
+            <span class="nav-icon">🏠</span>
+            <span>Dash</span>
+        </div>
+        <div class="nav-item" onclick="navTo('sim-projectile')" id="nav-sim-projectile">
+            <span class="nav-icon">🚀</span>
+            <span>Motion</span>
+        </div>
+        <div class="nav-item" onclick="navTo('sim-circuit')" id="nav-sim-circuit">
+            <span class="nav-icon">💡</span>
+            <span>Circuit</span>
+        </div>
+        <div class="nav-item" onclick="navTo('profile')" id="nav-profile">
+            <span class="nav-icon">👤</span>
+            <span>Profile</span>
+        </div>
+    </nav>
+
+<script>
+    // --- State Management ---
+    const state = {
+        user: null,
+        history: [],
+        circuit: { type: 'series', v: 12, r1: 10, r2: 10 },
+        projectile: { running: false, x: 0, y: 0, vx: 0, vy: 0, t: 0 }
+    };
+
+    // --- DOM Elements ---
+    const screens = document.querySelectorAll('.screen');
+    const navItems = document.querySelectorAll('.nav-item');
+    const toast = document.getElementById('toast');
+
+    // --- Init ---
+    function init() {
+        // Load history
+        const savedHistory = localStorage.getItem('stei_history');
+        if (savedHistory) state.history = JSON.parse(savedHistory);
+        
+        // Check auth
+        const savedUser = localStorage.getItem('stei_user');
+        if (savedUser) {
+            loginSuccess(JSON.parse(savedUser));
+        }
+
+        // Event Listeners for Sliders
+        setupListeners();
+        renderHistory();
+        updateCircuit();
+    }
+
+    function setupListeners() {
+        // Projectile Inputs
+        ['inp-vel', 'inp-angle', 'inp-drag'].forEach(id => {
+            document.getElementById(id).addEventListener('input', (e) => {
+                const labelId = id.replace('inp', 'val');
+                let suffix = id === 'inp-angle' ? '°' : (id === 'inp-drag' ? '' : ' m/s');
+                document.getElementById(labelId).innerText = e.target.value + suffix;
+                resetProjectile();
+            });
+        });
+
+        // Circuit Inputs
+        ['inp-volt', 'inp-r1', 'inp-r2'].forEach(id => {
+            document.getElementById(id).addEventListener('input', (e) => {
+                const labelId = id.replace('inp', 'val');
+                let suffix = id === 'inp-volt' ? ' V' : ' Ω';
+                document.getElementById(labelId).innerText = e.target.value + suffix;
+                state.circuit[id.replace('inp-', '')] = parseInt(e.target.value);
+                updateCircuit();
+            });
+        });
+    }
+
+    // --- Navigation Logic ---
+    function navTo(screenName) {
+        // Hide all screens
+        screens.forEach(s => s.classList.remove('active'));
+        // Show target
+        document.getElementById(screenName + '-screen').classList.add('active');
+        
+        // Update Nav Bar
+        navItems.forEach(n => n.classList.remove('active'));
+        const navId = 'nav-' + screenName;
+        if(document.getElementById(navId)) document.getElementById(navId).classList.add('active');
+
+        if(screenName !== 'sim-projectile') state.projectile.running = false;
+    }
+
+    // --- Auth Logic ---
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const user = { name: username, id: '123' };
+        localStorage.setItem('stei_user', JSON.stringify(user));
+        loginSuccess(user);
+    });
+
+    function loginSuccess(user) {
+        state.user = user;
+        document.getElementById('login-screen').classList.remove('active');
+        document.getElementById('login-screen').style.display = 'none';
+        
+        document.getElementById('app-container').style.display = 'block';
+        document.getElementById('nav-bar').style.display = 'flex';
+        
+        document.getElementById('welcome-msg').innerText = `Hello, ${user.name}!`;
+        document.getElementById('profile-name').innerText = user.name;
+        document.getElementById('profile-avatar').innerText = user.name.charAt(0).toUpperCase();
+        
+        navTo('dashboard');
+    }
+
+    function logout() {
+        localStorage.removeItem('stei_user');
+        location.reload();
+    }
+
+    // --- History Logic ---
+    function saveSimResult(simType) {
+        const now = new Date();
+        const timeString = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        const record = {
+            type: simType,
+            time: timeString,
+            details: simType === 'Projectile Motion' 
+                ? `Dist: ${document.getElementById('res-dist').innerText}` 
+                : `Power: ${document.getElementById('circuit-p').innerText}`
+        };
+        
+        state.history.unshift(record);
+        localStorage.setItem('stei_history', JSON.stringify(state.history));
+        renderHistory();
+        showToast("Experiment Saved!");
+    }
+
+    function clearHistory() {
+        state.history = [];
+        localStorage.removeItem('stei_history');
+        renderHistory();
+        showToast("History Cleared");
+    }
+
+    function renderHistory() {
+        const list = document.getElementById('full-history-list');
+        const recentList = document.getElementById('recent-history-list');
+        
+        if (state.history.length === 0) {
+            const empty = `<p style="text-align: center; font-size: 0.9rem; color: #999;">No history found.</p>`;
+            if(list) list.innerHTML = empty;
+            if(recentList) recentList.innerHTML = empty;
+            return;
+        }
+
+        const html = state.history.map(h => `
+            <div class="history-item">
+                <div class="history-meta">
+                    <b>${h.type}</b>
+                    <span class="history-date">${h.time}</span>
+                </div>
+                <div style="font-weight:600; color:var(--primary);">${h.details}</div>
+            </div>
+        `).join('');
+
+        if(list) list.innerHTML = html;
+        if(recentList) recentList.innerHTML = state.history.slice(0, 3).map(h => `
+            <div class="history-item" style="padding: 5px 0;">
+                <div class="history-meta">
+                    <b>${h.type}</b>
+                    <span class="history-date">${h.time.split(' ')[0]}</span>
+                </div>
+                <div style="font-size:0.8rem;">${h.details}</div>
+            </div>
+        `).join('');
+    }
+
+    // --- Simulasi 1: Projectile Motion (Canvas) ---
+    const canvas = document.getElementById('canvas-projectile');
+    const ctx = canvas.getContext('2d');
+    let animId;
+
+    function resetProjectile() {
+        state.projectile.running = false;
+        cancelAnimationFrame(animId);
+        state.projectile.t = 0;
+        state.projectile.x = 0;
+        state.projectile.y = 0;
+        document.getElementById('res-height').innerText = "0 m";
+        document.getElementById('res-dist').innerText = "0 m";
+        document.getElementById('res-time').innerText = "0 s";
+        drawProjectileFrame();
+    }
+
+    function startProjectile() {
+        if(state.projectile.running) return;
+        
+        const v0 = parseInt(document.getElementById('inp-vel').value);
+        const angle = parseInt(document.getElementById('inp-angle').value);
+        const k = parseFloat(document.getElementById('inp-drag').value);
+        
+        // Init physics state
+        const rad = angle * Math.PI / 180;
+        state.projectile.vx = v0 * Math.cos(rad);
+        state.projectile.vy = v0 * Math.sin(rad); 
+        state.projectile.x = 0;
+        state.projectile.y = 0; // Tinggi
+        state.projectile.k = k;
+        state.projectile.running = true;
+        state.projectile.t = 0;
+        
+        animateProjectile();
+    }
+
+    function animateProjectile() {
+        if (!state.projectile.running) return;
+
+        // Physics Step
+        const dt = 0.1; // Waktu step
+        const g = 9.8;
+        const k = state.projectile.k;
+
+        const ax = -k * state.projectile.vx;
+        const ay = -g - (k * state.projectile.vy);
+
+        state.projectile.vx += ax * dt;
+        state.projectile.vy += ay * dt;
+        state.projectile.x += state.projectile.vx * dt;
+        state.projectile.y += state.projectile.vy * dt;
+        state.projectile.t += dt;
+
+        // Ground collision
+        if (state.projectile.y <= 0 && state.projectile.t > 0.5) {
+            state.projectile.y = 0;
+            state.projectile.running = false;
+        }
+
+        // Update UI
+        document.getElementById('res-height').innerText = Math.max(0, state.projectile.y).toFixed(1) + " m";
+        document.getElementById('res-dist').innerText = state.projectile.x.toFixed(1) + " m";
+        document.getElementById('res-time').innerText = state.projectile.t.toFixed(1) + " s";
+
+        drawProjectileFrame();
+
+        if (state.projectile.running) {
+            animId = requestAnimationFrame(animateProjectile);
+        }
+    }
+
+    function drawProjectileFrame() {
+        // Clear
+        ctx.fillStyle = '#0F172A';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Grid
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for(let i=0; i<canvas.width; i+=50) { ctx.moveTo(i,0); ctx.lineTo(i, canvas.height); }
+        for(let i=0; i<canvas.height; i+=50) { ctx.moveTo(0,i); ctx.lineTo(canvas.width, i); }
+        ctx.stroke();
+
+        // Ground
+        ctx.strokeStyle = '#10B981';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height - 20);
+        ctx.lineTo(canvas.width, canvas.height - 20);
+        ctx.stroke();
+
+        // Ball
+        // Scale: 1m = 5px. 
+        const scale = 4; 
+        const originX = 50;
+        const originY = canvas.height - 20;
+        
+        const drawX = originX + (state.projectile.x * scale);
+        const drawY = originY - (state.projectile.y * scale);
+
+        ctx.fillStyle = '#F87171';
+        ctx.beginPath();
+        ctx.arc(drawX, drawY, 8, 0, Math.PI*2);
+        ctx.fill();
+    }
+
+    // --- Simulasi 2: Circuit Construction ---
+    function setCircuitType(type) {
+        state.circuit.type = type;
+        
+        // Toggle Buttons
+        const btnS = document.getElementById('btn-series');
+        const btnP = document.getElementById('btn-parallel');
+        
+        if(type === 'series') {
+            btnS.className = 'btn btn-primary';
+            btnP.className = 'btn btn-outline';
+        } else {
+            btnS.className = 'btn btn-outline';
+            btnP.className = 'btn btn-primary';
+        }
+        
+        updateCircuit();
+    }
+
+    function updateCircuit() {
+        const { type, v, r1, r2 } = state.circuit;
+        let rTotal, iTotal, power;
+
+        if (type === 'series') {
+            rTotal = r1 + r2;
+        } else {
+            // Parallel
+            rTotal = (r1 * r2) / (r1 + r2);
+        }
+
+        iTotal = v / rTotal;
+        power = v * iTotal;
+
+        // Update Text
+        document.getElementById('circuit-r').innerText = rTotal.toFixed(2) + " Ω";
+        document.getElementById('circuit-i').innerText = iTotal.toFixed(2) + " A";
+        document.getElementById('circuit-p').innerText = power.toFixed(2) + " W";
+
+        // Visual Feedback (Bulb Brightness)
+        const bulb = document.getElementById('bulb-vis');
+        const intensity = Math.min(power / 50, 1);
+        bulb.style.boxShadow = `0 0 ${intensity * 40}px ${intensity * 10}px rgba(252, 211, 77, 0.8)`;
+        if(intensity > 0.1) {
+            bulb.classList.add('on');
+            bulb.style.opacity = 1;
+        } else {
+            bulb.classList.remove('on');
+            bulb.style.opacity = 0.5;
+        }
+    }
+
+    function showToast(msg) {
+        toast.innerText = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // Start
+    init();
+    resetProjectile(); // Init canvasnya
+
+</script>
+</body>
+</html>
